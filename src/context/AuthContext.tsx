@@ -1,11 +1,11 @@
-// src/contexts/AuthContext.tsx
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
 interface AuthContextType {
   accessToken: string | null;
   refreshToken: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshAccessToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('refreshToken', data.refresh);
     } catch (error) {
       console.error('Login failed:', error);
-      throw error; // re-throw to allow components to handle the error if needed
+      throw error;
     }
   };
 
@@ -54,8 +54,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('refreshToken');
   };
 
+  const refreshAccessToken = async () => {
+    try {
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+      const response = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+      if (!response.ok) {
+        throw new Error('Refresh token invalid or expired');
+      }
+      const data = await response.json();
+      // Update the access token
+      setAccessToken(data.access);
+      localStorage.setItem('accessToken', data.access);
+      // If a new refresh token is provided (due to rotation), update it too.
+      if (data.refresh) {
+        setRefreshToken(data.refresh);
+        localStorage.setItem('refreshToken', data.refresh);
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      logout();
+    }
+  };
+
+  // Automatically refresh the access token a minute before expiry (15 mins - 1 min = 14 mins)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (refreshToken) {
+        refreshAccessToken();
+      }
+    }, 14 * 60 * 1000); // 14 minutes
+    return () => clearInterval(interval);
+  }, [refreshToken]);
+
   return (
-    <AuthContext.Provider value={{ accessToken, refreshToken, login, logout }}>
+    <AuthContext.Provider value={{ accessToken, refreshToken, login, logout, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

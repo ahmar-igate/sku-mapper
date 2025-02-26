@@ -9,6 +9,7 @@ import ColorModeSelect from "./theme/ColorModeSelect";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import RemoveLicenseWarning from "./RemoveLicenseWarning";
 const Login = React.lazy(() => import("./pages/login"));
 const Dashboard = React.lazy(() => import("./pages/dashboard"));
 
@@ -80,6 +81,7 @@ export default function AppWrapper(props: { disableCustomTheme?: boolean }) {
     <Router>
       <AppTheme {...props}>
         <CssBaseline enableColorScheme />
+        <RemoveLicenseWarning />
         <App />
       </AppTheme>
     </Router>
