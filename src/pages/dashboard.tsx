@@ -21,7 +21,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import SourceIcon from "@mui/icons-material/Source";
-import { Scrollbar } from "smooth-scrollbar-react";
+// import { Scrollbar } from "smooth-scrollbar-react";
 import CancelIcon from "@mui/icons-material/Close";
 import KPICard from "../components/KpiCard";
 
@@ -298,7 +298,7 @@ export default function Dashboard() {
   };
 
   // processRowUpdate is triggered when a row edit is committed
-  const processRowUpdate = async (updatedRow: any, originalRow: any) => {
+  const processRowUpdate = async (updatedRow: any, /* originalRow: any */) => {
     try {
       const response = await api.put(
         `/update_mapping/${updatedRow.id}`,
