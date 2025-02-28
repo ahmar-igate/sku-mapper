@@ -22,7 +22,9 @@
     "jwt-decode": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router": "^7.1.5"
+    "react-router": "^7.1.5",
+    "smooth-scrollbar": "^8.8.4",
+    "smooth-scrollbar-react": "^2.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

@@ -9,18 +9,19 @@ import {
   GridToolbar,
   GridEventListener,
 } from "@mui/x-data-grid-pro";
-import {
-  GridColDef,
-  GridRowsProp,
-  GridRowModesModel,
-} from "@mui/x-data-grid";
-import { Typography, Button, Box, Snackbar, Alert, Grid } from "@mui/material";
+import { GridColDef, GridRowsProp, GridRowModesModel } from "@mui/x-data-grid";
+import { Typography, Button, Box, Snackbar, Alert } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import api from "../api/axiosInstance";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import PublicIcon from "@mui/icons-material/Public";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import SourceIcon from "@mui/icons-material/Source";
+import { Scrollbar } from "smooth-scrollbar-react";
 import CancelIcon from "@mui/icons-material/Close";
 import KPICard from "../components/KpiCard";
 
@@ -98,6 +99,7 @@ interface KpiData {
   null_im_sku: number;
   unique_im_sku: number;
   not_null_im_sku: number;
+  unique_regions: number;
 }
 
 export default function Dashboard() {
@@ -108,6 +110,7 @@ export default function Dashboard() {
     null_im_sku: 0,
     unique_im_sku: 0,
     not_null_im_sku: 0,
+    unique_regions: 0,
   });
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [feedbackSeverity, setFeedbackSeverity] = useState<
@@ -127,7 +130,12 @@ export default function Dashboard() {
       editable: false,
     },
     { field: "asin", headerName: "ASIN", width: 200, editable: false },
-    { field: "im_sku", headerName: "Linnworks SKU", width: 200, editable: true },
+    {
+      field: "im_sku",
+      headerName: "Linnworks SKU",
+      width: 200,
+      editable: true,
+    },
     { field: "region", headerName: "Region", width: 100, editable: false },
     {
       field: "sales_channel",
@@ -151,7 +159,7 @@ export default function Dashboard() {
       field: "modified_by",
       headerName: "Mapped By",
       width: 200,
-      editable: false,
+      editable: true,
     },
     { field: "comment", headerName: "Comment", width: 150, editable: true },
     {
@@ -224,6 +232,7 @@ export default function Dashboard() {
             null_im_sku: response.data.null_im_sku,
             unique_im_sku: response.data.unique_im_sku,
             not_null_im_sku: response.data.not_null_im_sku,
+            unique_regions: response.data.unique_regions,
           });
         })
         .catch((error) => {
@@ -306,9 +315,7 @@ export default function Dashboard() {
     } catch (error: any) {
       if (error.response) {
         setFeedbackMessage(
-          `Error: ${
-            error.response.data.message || error.response.statusText
-          }`
+          `Error: ${error.response.data.message || error.response.statusText}`
         );
       } else if (error.request) {
         setFeedbackMessage("No response from server. Please try again later.");
@@ -326,7 +333,10 @@ export default function Dashboard() {
   };
 
   // Prevent row edit from stopping on row focus out
-  const handleRowEditStop: GridEventListener<"rowEditStop"> = (params, event) => {
+  const handleRowEditStop: GridEventListener<"rowEditStop"> = (
+    params,
+    event
+  ) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
       event.defaultMuiPrevented = true;
     }
@@ -346,19 +356,49 @@ export default function Dashboard() {
   }, [accessToken]);
 
   const KPICards = [
-    { title: "Linnwork SKUs To Be Mapped", value: kpiData.null_im_sku },
-    { title: "Unique Linnwork SKUs", value: kpiData.unique_im_sku },
-    { title: "Not Null Linnwork SKUs", value: kpiData.not_null_im_sku },
+    {
+      title: "Linnwork SKUs To Be Mapped",
+      value: kpiData.null_im_sku,
+      icon: <PendingActionsIcon />,
+    },
+    {
+      title: "Unique Linnwork SKUs",
+      value: kpiData.unique_im_sku,
+      icon: <Inventory2Icon />,
+    },
+    {
+      title: "Not Null Linnwork SKUs",
+      value: kpiData.not_null_im_sku,
+      icon: <SourceIcon />,
+    },
+    {
+      title: "Total Regions",
+      value: kpiData.unique_regions,
+      icon: <PublicIcon />,
+    },
   ];
 
   return (
     <Box sx={{ padding: 2 }}>
       {/* Header and actions */}
-      <Box sx={{ marginBottom: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+      <Box
+        sx={{
+          marginBottom: 2,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+        }}
+      >
         <Typography variant="h4" component="h1">
           Dashboard
         </Typography>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           {userInfo ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Typography variant="body1">User: {userInfo.email}</Typography>
@@ -371,24 +411,49 @@ export default function Dashboard() {
           )}
           {rows.length !== 0 && (
             <Box sx={{ display: "flex", gap: 2 }}>
-              <Button variant={loading ? "outlined" : "contained"} onClick={refreshData} disabled={loading}>
+              <Button
+                variant={loading ? "outlined" : "contained"}
+                onClick={refreshData}
+                disabled={loading}
+              >
                 Refresh Data
               </Button>
-              <Button variant={loading ? "outlined" : "contained"} onClick={saveMapping} disabled={loading}>
+              <Button
+                variant={loading ? "outlined" : "contained"}
+                onClick={saveMapping}
+                disabled={loading}
+              >
                 Save Mapping
               </Button>
             </Box>
           )}
         </Box>
-        <Box sx={{ marginBottom: 2, display: "flex", flexDirection: "row", gap: 4 }}>
+        <Box
+          sx={{
+            marginBottom: 2,
+            display: "flex",
+            flexDirection: "row",
+            gap: 4,
+          }}
+        >
           {KPICards.map((kpi, index) => (
-            <KPICard key={index} title={kpi.title} value={kpi.value} />
+            <KPICard
+              key={index}
+              title={kpi.title}
+              value={kpi.value}
+              icon={kpi.icon}
+            />
           ))}
         </Box>
       </Box>
       {/* DataGridPro */}
       {userInfo ? (
-        <div style={{ height: 700, width: "100%" }}>
+        // <Scrollbar
+        //   damping={0.07}
+        //   thumbMinSize={20}
+        //   style={{ height: 700, width: "100%" }}
+        // >
+        <div style={{ height: "100vh", width: "100%", scrollBehavior: "smooth" }}>
           <DataGridPro
             rows={rows}
             columns={columns}
@@ -401,13 +466,27 @@ export default function Dashboard() {
             onProcessRowUpdateError={handleProcessRowUpdateError}
             disableRowSelectionOnClick
             pagination
-            initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
-            pageSizeOptions={[50, 100, 200, { value: -1, label: "All" }]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 50 } },
+            }}
+            pageSizeOptions={[50, 100, 200, 500, { value: -1, label: "All" }]}
             slots={{ toolbar: EditToolbar }}
             slotProps={{ toolbar: { setRows, setRowModesModel } }}
+            sx={{
+              "& .MuiDataGrid-columnHeaders": {
+                position: "sticky",
+                top: 0,
+                zIndex: 100,
+                backgroundColor: "white", // or use your theme's background color
+              },
+              "& .MuiDataGrid-virtualScroller": {
+                marginTop: 0, // ensure there's no extra offset
+              },
+            }}
           />
         </div>
       ) : (
+        // </Scrollbar>
         <Typography variant="body1">No Data Available</Typography>
       )}
       {/* Snackbar for feedback */}
@@ -417,7 +496,11 @@ export default function Dashboard() {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={() => setSnackbarOpen(false)} severity={feedbackSeverity} sx={{ width: "100%" }}>
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={feedbackSeverity}
+          sx={{ width: "100%" }}
+        >
           {feedbackMessage}
         </Alert>
       </Snackbar>
