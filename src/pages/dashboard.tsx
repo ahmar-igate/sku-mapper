@@ -159,7 +159,7 @@ export default function Dashboard() {
       field: "modified_by",
       headerName: "Mapped By",
       width: 200,
-      editable: true,
+      editable: false,
     },
     { field: "comment", headerName: "Comment", width: 150, editable: true },
     {
@@ -298,19 +298,34 @@ export default function Dashboard() {
   };
 
   // processRowUpdate is triggered when a row edit is committed
-  const processRowUpdate = async (updatedRow: any, /* originalRow: any */) => {
+  const processRowUpdate = async (updatedRow: any) => {
+    if (!userInfo) {
+      console.error("User info not available");
+      return updatedRow;
+    }
+  
+    // Set the modified_by field to the logged-in user's email
+    const updatedRowWithUser = {
+      ...updatedRow,
+      modified_by: userInfo.email, // Update modified_by with the logged-in user's email
+    };
+  
     try {
       const response = await api.put(
         `/update_mapping/${updatedRow.id}`,
-        updatedRow
+        updatedRowWithUser
       );
+  
       setFeedbackMessage("Row updated successfully!");
       setFeedbackSeverity("success");
       setSnackbarOpen(true);
-      const updated = { ...updatedRow, isNew: false, ...response.data };
+  
+      const updated = { ...updatedRowWithUser, isNew: false, ...response.data };
+  
       setRows((prevRows) =>
         prevRows.map((row) => (row.id === updatedRow.id ? updated : row))
       );
+  
       return updated;
     } catch (error: any) {
       if (error.response) {
@@ -327,6 +342,7 @@ export default function Dashboard() {
       throw error;
     }
   };
+  
 
   const handleProcessRowUpdateError = (error: any) => {
     console.error("Row update failed:", error);
