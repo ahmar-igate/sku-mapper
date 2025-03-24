@@ -98,7 +98,7 @@ interface TokenPayload {
 interface KpiData {
   null_im_sku: number;
   unique_im_sku: number;
-  not_null_im_sku: number;
+  unique_marketplace_sku: number;
   unique_regions: number;
 }
 
@@ -109,7 +109,7 @@ export default function Dashboard() {
   const [kpiData, setKpiData] = useState<KpiData>({
     null_im_sku: 0,
     unique_im_sku: 0,
-    not_null_im_sku: 0,
+    unique_marketplace_sku: 0,
     unique_regions: 0,
   });
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
@@ -231,7 +231,7 @@ export default function Dashboard() {
           setKpiData({
             null_im_sku: response.data.null_im_sku,
             unique_im_sku: response.data.unique_im_sku,
-            not_null_im_sku: response.data.not_null_im_sku,
+            unique_marketplace_sku: response.data.unique_marketplace_sku,
             unique_regions: response.data.unique_regions,
           });
         })
@@ -315,10 +315,14 @@ export default function Dashboard() {
         `/update_mapping/${updatedRow.id}`,
         updatedRowWithUser
       );
-  
-      setFeedbackMessage("Row updated successfully!");
-      setFeedbackSeverity("success");
-      setSnackbarOpen(true);
+
+      if (response.data){
+        setFeedbackMessage(response.data.message);
+        setFeedbackSeverity("success");
+        setSnackbarOpen(true);
+      }
+      // console.log("res: ", response.data);
+
   
       const updated = { ...updatedRowWithUser, isNew: false, ...response.data };
   
@@ -383,8 +387,8 @@ export default function Dashboard() {
       icon: <Inventory2Icon />,
     },
     {
-      title: "Not Null Linnwork SKUs",
-      value: kpiData.not_null_im_sku,
+      title: "Unique Marketplace SKUs",
+      value: kpiData.unique_marketplace_sku,
       icon: <SourceIcon />,
     },
     {
