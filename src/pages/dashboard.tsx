@@ -21,9 +21,14 @@ import PublicIcon from "@mui/icons-material/Public";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import SourceIcon from "@mui/icons-material/Source";
+import CategoryIcon from "@mui/icons-material/Category";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import SubtitlesIcon from "@mui/icons-material/Subtitles";
 // import { Scrollbar } from "smooth-scrollbar-react";
 import CancelIcon from "@mui/icons-material/Close";
 import KPICard from "../components/KpiCard";
+import Dialogue from "../components/Dialogue";
+import DifferenceIcon from "@mui/icons-material/Difference";
 
 /* ---------------------------------------------------------------------------
    Module Augmentation
@@ -60,12 +65,17 @@ export function EditToolbar(props: EditToolbarProps) {
         marketplace_sku: "",
         asin: "",
         im_sku: "",
+        parent_sku: "",
         region: "",
         sales_channel: "",
         level_1: "",
         linworks_title: "",
+        amazon_title: "",
         modified_by: "",
+        modified_by_finance: "",
+        modified_by_admin: "",
         comment: "",
+        comment_by_finance: "",
         isNew: true,
       },
     ]);
@@ -93,6 +103,7 @@ interface TokenPayload {
   user_id: string;
   exp: number;
   iat: number;
+  department?: string;
 }
 
 interface KpiData {
@@ -100,10 +111,14 @@ interface KpiData {
   unique_im_sku: number;
   unique_marketplace_sku: number;
   unique_regions: number;
+  lin_title_to_be_mapped?: number;
+  lin_category_to_be_mapped?: number;
+  null_parent_sku?: number;
+  unique_parent_sku?: number;
 }
 
 export default function Dashboard() {
-  const { accessToken } = useAuth();
+  const { accessToken, department } = useAuth();
   const [rows, setRows] = useState<GridRowsProp>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [kpiData, setKpiData] = useState<KpiData>({
@@ -111,18 +126,107 @@ export default function Dashboard() {
     unique_im_sku: 0,
     unique_marketplace_sku: 0,
     unique_regions: 0,
+    lin_title_to_be_mapped: 0,
+    lin_category_to_be_mapped: 0,
+    null_parent_sku: 0,
+    unique_parent_sku: 0,
   });
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [feedbackSeverity, setFeedbackSeverity] = useState<
-    "success" | "error" | "info"
+    "success" | "error" | "info" | "warning"
   >("info");
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
 
   // State for controlling row edit modes
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
 
+  // Extract user information from token
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (accessToken) {
+      try {
+        const decoded = jwtDecode<TokenPayload>(accessToken);
+        setUserEmail(decoded.email);
+        setUserId(decoded.user_id);
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
+    }
+  }, [accessToken]);
+
+  // Get user department for permission-based editing
+  const userDepartment = department || "SCM";
+
+  // Add helper function to check if user can edit fields
+  const canEdit = (department: string | null, allowedDept: string): boolean => {
+    // Admin can edit everything
+    if (department?.toUpperCase() === "ADMIN") return true;
+    // Otherwise check specific department permission
+    return department?.toUpperCase() === allowedDept;
+  };
+
   const columns: GridColDef[] = [
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "Actions",
+      width: 100,
+      cellClassName: "actions",
+      getActions: ({ id }) => {
+        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
+        if (isInEditMode) {
+          return [
+            <GridActionsCellItem
+              key="save"
+              icon={<SaveIcon />}
+              label="Save"
+              onClick={() =>
+                setRowModesModel({
+                  ...rowModesModel,
+                  [id]: { mode: GridRowModes.View },
+                })
+              }
+              color="primary"
+            />,
+            <GridActionsCellItem
+              key="cancel"
+              icon={<CancelIcon />}
+              label="Cancel"
+              onClick={() => {
+                setRowModesModel({
+                  ...rowModesModel,
+                  [id]: { mode: GridRowModes.View, ignoreModifications: true },
+                });
+                const editedRow = rows.find((row) => row.id === id);
+                if (editedRow?.isNew) {
+                  setRows(rows.filter((row) => row.id !== id));
+                }
+              }}
+              color="inherit"
+            />,
+          ];
+        }
+        return [
+          <GridActionsCellItem
+            key="edit"
+            icon={<EditIcon />}
+            label="Edit"
+            onClick={() =>
+              setRowModesModel({
+                ...rowModesModel,
+                [id]: { mode: GridRowModes.Edit },
+              })
+            }
+            color="inherit"
+          />,
+        ];
+      },
+    },
     { field: "id", headerName: "ID", width: 90, editable: false },
+    { field: "date", headerName: "Date", width: 90, editable: false },
     {
       field: "marketplace_sku",
       headerName: "Marketplace SKU",
@@ -134,34 +238,70 @@ export default function Dashboard() {
       field: "im_sku",
       headerName: "Linnworks SKU",
       width: 200,
-      editable: true,
+      editable: canEdit(userDepartment, "SCM"), // SCM and ADMIN can edit
+    },
+    {
+      field: "parent_sku",
+      headerName: "Parent SKU",
+      width: 200,
+      editable: canEdit(userDepartment, "FINANCE"), // FINANCE and ADMIN can edit
     },
     { field: "region", headerName: "Region", width: 100, editable: false },
     {
       field: "sales_channel",
       headerName: "Sales Channel",
       width: 200,
-      editable: true,
+      editable: true, // Only editable for SCM, case-insensitive
     },
     {
       field: "level_1",
       headerName: "Linnworks Category",
       width: 200,
-      editable: true,
+      editable: true, // Only editable for Finance, case-insensitive
+    },
+
+    {
+      field: "amazon_title",
+      headerName: "Amazon Title",
+      width: 300,
+      editable: false,
     },
     {
       field: "linworks_title",
       headerName: "Linnworks Title",
       width: 300,
-      editable: true,
+      editable: true, // Only editable for SCM, case-insensitive
     },
     {
       field: "modified_by",
-      headerName: "Mapped By",
+      headerName: "Mapped By SCM",
       width: 200,
       editable: false,
     },
-    { field: "comment", headerName: "Comment", width: 150, editable: true },
+    {
+      field: "modified_by_finance",
+      headerName: "Mapped By Finance",
+      width: 200,
+      editable: false,
+    },
+    {
+      field: "modified_by_admin",
+      headerName: "Mapped By Admin",
+      width: 200,
+      editable: false,
+    },
+    {
+      field: "comment",
+      headerName: "Comment by SCM",
+      width: 150,
+      editable: canEdit(userDepartment, "SCM"), // SCM and ADMIN can edit
+    },
+    {
+      field: "comment_by_finance",
+      headerName: "Comment by Finance",
+      width: 180,
+      editable: canEdit(userDepartment, "FINANCE"), // FINANCE and ADMIN can edit
+    },
     {
       field: "actions",
       type: "actions",
@@ -233,6 +373,12 @@ export default function Dashboard() {
             unique_im_sku: response.data.unique_im_sku,
             unique_marketplace_sku: response.data.unique_marketplace_sku,
             unique_regions: response.data.unique_regions,
+            lin_title_to_be_mapped: response.data.lin_title_to_be_mapped,
+            lin_category_to_be_mapped:
+              response.data.lin_category_to_be_mapped,
+            null_parent_sku: response.data.null_parent_sku,
+            unique_parent_sku: response.data.unique_parent_sku,
+
           });
         })
         .catch((error) => {
@@ -247,27 +393,11 @@ export default function Dashboard() {
     }
   };
 
-  // Save mapping via API
-  const saveMapping = () => {
-    if (accessToken) {
-      setLoading(true);
-      api
-        .post("/save_mapping/", { mapping_data: rows })
-        .then(() => {
-          setFeedbackMessage("Mapping saved successfully!");
-          setFeedbackSeverity("success");
-          setSnackbarOpen(true);
-        })
-        .catch((error) => {
-          console.error("Error saving mapping:", error);
-          setFeedbackMessage("Error saving mapping.");
-          setFeedbackSeverity("error");
-          setSnackbarOpen(true);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+  const handleClose = () => {
+    setOpen(false);
   };
 
   // Refresh data via API
@@ -299,37 +429,54 @@ export default function Dashboard() {
 
   // processRowUpdate is triggered when a row edit is committed
   const processRowUpdate = async (updatedRow: any) => {
-    if (!userInfo) {
+    if (!userEmail) {
       console.error("User info not available");
       return updatedRow;
     }
-  
-    // Set the modified_by field to the logged-in user's email
-    const updatedRowWithUser = {
-      ...updatedRow,
-      modified_by: userInfo.email, // Update modified_by with the logged-in user's email
-    };
-  
+
+    // Set the appropriate modified_by field based on department
+    const updatedRowWithUser = { ...updatedRow };
+
+    console.log("Process row update - Department:", userDepartment);
+
+    // Determine which field to update based on user's department
+    // Clear all department fields first to avoid confusion
+    updatedRowWithUser.modified_by = null;
+    updatedRowWithUser.modified_by_finance = null;
+    updatedRowWithUser.modified_by_admin = null;
+
+    if (userDepartment?.toUpperCase() === "SCM") {
+      console.log("Setting modified_by for SCM user:", userEmail);
+      updatedRowWithUser.modified_by = userEmail;
+    } else if (userDepartment?.toUpperCase() === "FINANCE") {
+      console.log("Setting modified_by_finance for Finance user:", userEmail);
+      updatedRowWithUser.modified_by_finance = userEmail;
+    } else if (userDepartment?.toUpperCase() === "ADMIN") {
+      console.log("Setting modified_by_admin for Admin user:", userEmail);
+      updatedRowWithUser.modified_by_admin = userEmail;
+    }
+
     try {
+      // Log the data being sent to the server
+      console.log("Sending data to server:", updatedRowWithUser);
+
       const response = await api.put(
         `/update_mapping/${updatedRow.id}`,
         updatedRowWithUser
       );
 
-      if (response.data){
+      if (response.data) {
         setFeedbackMessage(response.data.message);
         setFeedbackSeverity("success");
         setSnackbarOpen(true);
       }
-      // console.log("res: ", response.data);
 
-  
       const updated = { ...updatedRowWithUser, isNew: false, ...response.data };
-  
+
       setRows((prevRows) =>
         prevRows.map((row) => (row.id === updatedRow.id ? updated : row))
       );
-  
+
       return updated;
     } catch (error: any) {
       if (error.response) {
@@ -346,7 +493,6 @@ export default function Dashboard() {
       throw error;
     }
   };
-  
 
   const handleProcessRowUpdateError = (error: any) => {
     console.error("Row update failed:", error);
@@ -362,18 +508,57 @@ export default function Dashboard() {
     }
   };
 
-  let userInfo: TokenPayload | null = null;
-  if (accessToken) {
-    try {
-      userInfo = jwtDecode<TokenPayload>(accessToken);
-    } catch (error) {
-      console.error("Error decoding token:", error);
-    }
-  }
-
   useEffect(() => {
     fetchData();
   }, [accessToken]);
+
+  // Add this useEffect after your existing useEffects
+  useEffect(() => {
+    console.log("Current department:", userDepartment);
+    console.log("Department from context:", department);
+
+    // Log which modified_by field will be updated
+    if (userDepartment?.toUpperCase() === "SCM") {
+      console.log("User is SCM, will update modified_by field");
+    } else if (userDepartment?.toUpperCase() === "FINANCE") {
+      console.log("User is FINANCE, will update modified_by_finance field");
+    } else if (userDepartment?.toUpperCase() === "ADMIN") {
+      console.log("User is ADMIN, will update modified_by_admin field");
+    }
+
+    // Log whether columns should be editable based on department
+    console.log("Comment editable by SCM?", canEdit(userDepartment, "SCM"));
+    console.log(
+      "Comment by Finance editable by Finance?",
+      canEdit(userDepartment, "FINANCE")
+    );
+    console.log(
+      "Is admin with full permissions?",
+      userDepartment?.toUpperCase() === "ADMIN"
+    );
+
+    // Try case-insensitive comparison and log results
+    console.log(
+      "Case-insensitive compare - SCM?",
+      userDepartment?.toUpperCase() === "SCM"
+    );
+    console.log(
+      "Case-insensitive compare - FINANCE?",
+      userDepartment?.toUpperCase() === "FINANCE"
+    );
+    console.log(
+      "Case-insensitive compare - ADMIN?",
+      userDepartment?.toUpperCase() === "ADMIN"
+    );
+
+    if (userDepartment) {
+      console.log("Department type:", typeof userDepartment);
+      console.log(
+        "Department char codes:",
+        Array.from(userDepartment).map((c) => c.charCodeAt(0))
+      );
+    }
+  }, [userDepartment, department]);
 
   const KPICards = [
     {
@@ -387,6 +572,16 @@ export default function Dashboard() {
       icon: <Inventory2Icon />,
     },
     {
+      title: "Parent SKUs To Be Mapped",
+      value: kpiData.null_parent_sku,
+      icon: <PrecisionManufacturingIcon />,
+    },
+    {
+      title: "Unique Parent SKUs",
+      value: kpiData.unique_parent_sku,
+      icon: <DifferenceIcon />,
+    },
+    {
       title: "Unique Marketplace SKUs",
       value: kpiData.unique_marketplace_sku,
       icon: <SourceIcon />,
@@ -396,7 +591,18 @@ export default function Dashboard() {
       value: kpiData.unique_regions,
       icon: <PublicIcon />,
     },
+    {
+      title: "Linnworks Title To Be Mapped",
+      value: kpiData.lin_title_to_be_mapped,
+      icon: <SubtitlesIcon />,
+    },
+    {
+      title: "Linnworks Category To Be Mapped",
+      value: kpiData.lin_category_to_be_mapped,
+      icon: <CategoryIcon />,
+    },
   ];
+  
 
   return (
     <Box sx={{ padding: 2 }}>
@@ -419,10 +625,13 @@ export default function Dashboard() {
             alignItems: "center",
           }}
         >
-          {userInfo ? (
+          {userEmail && userId ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography variant="body1">User: {userInfo.email}</Typography>
-              <Typography variant="body1">ID: {userInfo.user_id}</Typography>
+              <Typography variant="body1">User: {userEmail}</Typography>
+              <Typography variant="body1">ID: {userId}</Typography>
+              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                Department: {userDepartment}
+              </Typography>
             </Box>
           ) : (
             <Typography variant="body1">
@@ -440,7 +649,7 @@ export default function Dashboard() {
               </Button>
               <Button
                 variant={loading ? "outlined" : "contained"}
-                onClick={saveMapping}
+                onClick={handleClickOpen}
                 disabled={loading}
               >
                 Save Mapping
@@ -451,29 +660,33 @@ export default function Dashboard() {
         <Box
           sx={{
             marginBottom: 2,
+            marginTop: 2,
             display: "flex",
+            flexWrap: "wrap",
             flexDirection: "row",
-            gap: 4,
+            gap: 2,
           }}
         >
           {KPICards.map((kpi, index) => (
             <KPICard
               key={index}
               title={kpi.title}
-              value={kpi.value}
+              value={kpi.value ?? 0}
               icon={kpi.icon}
             />
           ))}
         </Box>
       </Box>
       {/* DataGridPro */}
-      {userInfo ? (
+      {userEmail && userId ? (
         // <Scrollbar
         //   damping={0.07}
         //   thumbMinSize={20}
         //   style={{ height: 700, width: "100%" }}
         // >
-        <div style={{ height: "100vh", width: "100%", scrollBehavior: "smooth" }}>
+        <div
+          style={{ height: "100vh", width: "100%", scrollBehavior: "smooth" }}
+        >
           <DataGridPro
             rows={rows}
             columns={columns}
@@ -524,6 +737,16 @@ export default function Dashboard() {
           {feedbackMessage}
         </Alert>
       </Snackbar>
+      <Dialogue
+        handleClose={handleClose}
+        open={open}
+        rows={rows}
+        accessToken={accessToken}
+        setLoading={setLoading}
+        setFeedbackMessage={setFeedbackMessage}
+        setFeedbackSeverity={setFeedbackSeverity}
+        setSnackbarOpen={setSnackbarOpen}
+      />
     </Box>
   );
 }

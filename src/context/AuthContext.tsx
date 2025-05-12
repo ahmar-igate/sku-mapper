@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 interface AuthContextType {
   accessToken: string | null;
   refreshToken: string | null;
+  department: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
@@ -21,10 +22,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(
     localStorage.getItem('refreshToken')
   );
+  const [department, setDepartment] = useState<string | null>(() => {
+    const storedDept = localStorage.getItem('department');
+    console.log('Stored department from localStorage:', storedDept);
+    return storedDept;
+  });
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('https://skumapper.x-demand.com/api/token/', {
+      const response = await fetch('http://skumapper.x-demand.com/api/token/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,6 +47,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setRefreshToken(data.refresh);
       localStorage.setItem('accessToken', data.access);
       localStorage.setItem('refreshToken', data.refresh);
+      
+      // Parse the JWT to get the department
+      try {
+        const payload = JSON.parse(atob(data.access.split('.')[1]));
+        console.log('JWT Payload:', payload); // Debug payload
+        
+        // Check if department exists and set it properly
+        if (payload.department) {
+          const userDepartment = payload.department.toString().trim();
+          console.log('Department from JWT (raw):', userDepartment);
+          console.log('Department from JWT (uppercase):', userDepartment.toUpperCase());
+          
+          // Store the department in the exact format needed for later comparisons
+          setDepartment(userDepartment.toUpperCase());
+          localStorage.setItem('department', userDepartment.toUpperCase());
+        } else {
+          console.log('No department found in JWT, defaulting to SCM');
+          setDepartment('SCM');
+          localStorage.setItem('department', 'SCM');
+        }
+      } catch (e) {
+        console.error('Error parsing JWT:', e);
+        setDepartment('SCM'); // Default to SCM if there's an error
+        localStorage.setItem('department', 'SCM');
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -50,8 +81,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setAccessToken(null);
     setRefreshToken(null);
+    setDepartment(null);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('department');
   };
 
   const refreshAccessToken = async () => {
@@ -59,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
-      const response = await fetch('https://skumapper.x-demand.com/api/token/refresh/', {
+      const response = await fetch('http://skumapper.x-demand.com/api/token/refresh/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),
@@ -71,6 +104,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update the access token
       setAccessToken(data.access);
       localStorage.setItem('accessToken', data.access);
+      
+      // Parse the JWT to get the department (in case it changed)
+      try {
+        const payload = JSON.parse(atob(data.access.split('.')[1]));
+        console.log('Refresh Token JWT Payload:', payload); // Debug payload
+        
+        // Check if department exists and set it properly
+        if (payload.department) {
+          const userDepartment = payload.department.toString().trim();
+          console.log('Department from refresh token (raw):', userDepartment);
+          console.log('Department from refresh token (uppercase):', userDepartment.toUpperCase());
+          
+          // Store the department in the exact format needed for later comparisons
+          setDepartment(userDepartment.toUpperCase());
+          localStorage.setItem('department', userDepartment.toUpperCase());
+        } else {
+          console.log('No department found in refresh token, defaulting to SCM');
+          setDepartment('SCM');
+          localStorage.setItem('department', 'SCM');
+        }
+      } catch (e) {
+        console.error('Error parsing JWT:', e);
+      }
+      
       // If a new refresh token is provided (due to rotation), update it too.
       if (data.refresh) {
         setRefreshToken(data.refresh);
@@ -88,12 +145,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (refreshToken) {
         refreshAccessToken();
       }
-    }, 14 * 60 * 1000); // 14 minutes
+    }, 64 * 60 * 1000); // 14 minutes
     return () => clearInterval(interval);
   }, [refreshToken]);
 
+  // More aggressive logging for department
+  useEffect(() => {
+    console.log('Current department state:', department);
+  }, [department]);
+
   return (
-    <AuthContext.Provider value={{ accessToken, refreshToken, login, logout, refreshAccessToken }}>
+    <AuthContext.Provider value={{ accessToken, refreshToken, department, login, logout, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );
