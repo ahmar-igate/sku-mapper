@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://skumapper.x-demand.com/api/token/', {
+      const response = await fetch('http://192.168.168.49/skumapper/api/token/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
-      const response = await fetch('http://skumapper.x-demand.com/api/token/refresh/', {
+      const response = await fetch('http://192.168.168.49/skumapper/api/token/refresh/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),

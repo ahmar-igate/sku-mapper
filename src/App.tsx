@@ -62,7 +62,8 @@ function App() {
             </Box>
           }
         >
-          <Routes>
+
+	<Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute />}>
@@ -78,7 +79,7 @@ function App() {
 export default function AppWrapper(props: { disableCustomTheme?: boolean }) {
   return (
     <AuthProvider>
-    <Router>
+    <Router basename="/skumapper">
       <AppTheme {...props}>
         <CssBaseline enableColorScheme />
         <RemoveLicenseWarning />
