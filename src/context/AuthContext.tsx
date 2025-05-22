@@ -29,8 +29,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   const login = async (email: string, password: string) => {
+    const apiurl = import.meta.env.VITE_BASE_URL;
     try {
-      const response = await fetch('http://192.168.168.49/skumapper/api/token/', {
+      const response = await fetch(`${apiurl}/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,11 +89,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshAccessToken = async () => {
+    const apiurl = import.meta.env.VITE_BASE_URL;
     try {
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
-      const response = await fetch('http://192.168.168.49/skumapper/api/token/refresh/', {
+      const response = await fetch(`${apiurl}/token/refresh/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),

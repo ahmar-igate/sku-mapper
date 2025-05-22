@@ -28,6 +28,7 @@ import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import CancelIcon from "@mui/icons-material/Close";
 import KPICard from "../components/KpiCard";
 import Dialogue from "../components/Dialogue";
+import FileUploadModal from "../components/FileUploadModal";
 import DifferenceIcon from "@mui/icons-material/Difference";
 
 /* ---------------------------------------------------------------------------
@@ -115,6 +116,7 @@ interface KpiData {
   lin_category_to_be_mapped?: number;
   null_parent_sku?: number;
   unique_parent_sku?: number;
+  unique_im_sku_hvng_abondoned_items?: number;
 }
 
 export default function Dashboard() {
@@ -130,6 +132,7 @@ export default function Dashboard() {
     lin_category_to_be_mapped: 0,
     null_parent_sku: 0,
     unique_parent_sku: 0,
+    unique_im_sku_hvng_abondoned_items: 0,
   });
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [feedbackSeverity, setFeedbackSeverity] = useState<
@@ -144,6 +147,7 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [open, setOpen] = useState(false);
+  const [openUploadModal, setOpenUploadModal] = useState(false);
 
   useEffect(() => {
     if (accessToken) {
@@ -378,7 +382,7 @@ export default function Dashboard() {
               response.data.lin_category_to_be_mapped,
             null_parent_sku: response.data.null_parent_sku,
             unique_parent_sku: response.data.unique_parent_sku,
-
+            unique_im_sku_hvng_abondoned_items: response.data.unique_im_sku_hvng_abondoned_items,
           });
         })
         .catch((error) => {
@@ -398,6 +402,14 @@ export default function Dashboard() {
   };
   const handleClose = () => {
     setOpen(false);
+  };
+  
+  const handleOpenUploadModal = () => {
+    setOpenUploadModal(true);
+  };
+  
+  const handleCloseUploadModal = () => {
+    setOpenUploadModal(false);
   };
 
   // Refresh data via API
@@ -601,7 +613,14 @@ export default function Dashboard() {
       value: kpiData.lin_category_to_be_mapped,
       icon: <CategoryIcon />,
     },
+    {
+      title: "Unique Linnwork SKUs Having Abondoned Items",
+      value: kpiData.unique_im_sku_hvng_abondoned_items,
+      icon: <CategoryIcon />,
+    },
   ];
+
+  console.log("Linnwork SKUS Having Abondoned Items:", kpiData.unique_im_sku_hvng_abondoned_items);
   
 
   return (
@@ -640,6 +659,13 @@ export default function Dashboard() {
           )}
           {rows.length !== 0 && (
             <Box sx={{ display: "flex", gap: 2 }}>
+                <Button
+                variant={loading ? "outlined" : "contained"}
+                onClick={handleOpenUploadModal}
+                disabled={loading}
+              >
+                Bulk upload
+              </Button>
               <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={refreshData}
@@ -746,6 +772,18 @@ export default function Dashboard() {
         setFeedbackMessage={setFeedbackMessage}
         setFeedbackSeverity={setFeedbackSeverity}
         setSnackbarOpen={setSnackbarOpen}
+      />
+      <FileUploadModal
+        open={openUploadModal}
+        handleClose={handleCloseUploadModal}
+        accessToken={accessToken}
+        department={userDepartment}
+        userEmail={userEmail}
+        setLoading={setLoading}
+        setFeedbackMessage={setFeedbackMessage}
+        setFeedbackSeverity={setFeedbackSeverity}
+        setSnackbarOpen={setSnackbarOpen}
+        refreshData={fetchData} //refresh data with /dashboard endpoint
       />
     </Box>
   );

@@ -38,6 +38,7 @@ export default function CustomizedDialogs({
   //   const handleClose = () => {
   //     setOpen(false);
   //   };
+  const [timestamp, setTimestamp] = React.useState<string>("");
 
   // Save mapping via API
   const saveMapping = () => {
@@ -47,6 +48,7 @@ export default function CustomizedDialogs({
         .post("/save_mapping/", { mapping_data: rows })
         .then((response) => {
           const data = response.data;
+          setTimestamp(data.timestamp);
 
           if (data.message) {
             // "rows_inserted" and "rows_skipped_due_to_missing_fields"
@@ -117,10 +119,14 @@ export default function CustomizedDialogs({
             or consult with your team.
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{display: "flex", justifyContent: "space-between", px:4}}>
+        <Typography gutterBottom fontSize={12}>
+            Last Saved: {timestamp}
+          </Typography>
           <Button autoFocus onClick={saveMapping}>
             Save Mapping
           </Button>
+
         </DialogActions>
       </BootstrapDialog>
     </React.Fragment>
