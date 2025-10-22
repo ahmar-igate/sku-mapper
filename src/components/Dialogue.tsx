@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useAuth } from "../context/AuthContext";
 import Button from "@mui/material/Button";
 import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
@@ -39,13 +40,17 @@ export default function CustomizedDialogs({
   //     setOpen(false);
   //   };
   const [timestamp, setTimestamp] = React.useState<string>("");
+  const { department } = useAuth();
+  const userDepartment = (department || 'SCM').toUpperCase();
+  const isReadOnly = userDepartment === 'READ_ONLY';
 
   // Save mapping via API
   const saveMapping = () => {
+    if (isReadOnly) return;
     if (accessToken) {
       setLoading(true);
       api
-        .post("/save_mapping/", { mapping_data: rows })
+        .post("/save_mapping/", { mapping_data: rows, department: userDepartment })
         .then((response) => {
           const data = response.data;
           setTimestamp(data.timestamp);
@@ -123,7 +128,7 @@ export default function CustomizedDialogs({
         <Typography gutterBottom fontSize={12}>
             Last Saved: {timestamp}
           </Typography>
-          <Button autoFocus onClick={saveMapping}>
+          <Button autoFocus onClick={saveMapping} disabled={isReadOnly} sx={{ opacity: isReadOnly ? 0.6 : 1 }}>
             Save Mapping
           </Button>
 

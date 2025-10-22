@@ -95,6 +95,7 @@ export default function FileUploadModal({
   refreshData,
 }: FileUploadModalProps) {
   const theme = useTheme();
+  const isReadOnly = (department || '').toUpperCase() === 'READ_ONLY';
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploading, setUploading] = useState<boolean>(false);
@@ -201,6 +202,7 @@ export default function FileUploadModal({
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (isReadOnly) return;
     // Only use the first file if multiple are uploaded
     const file = acceptedFiles[0];
     
@@ -230,7 +232,7 @@ export default function FileUploadModal({
     
     // Replace any existing file with the new one
     setFiles([file]);
-  }, [setFeedbackMessage, setFeedbackSeverity, setSnackbarOpen]);
+  }, [setFeedbackMessage, setFeedbackSeverity, setSnackbarOpen, isReadOnly]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -238,6 +240,7 @@ export default function FileUploadModal({
       'text/csv': ['.csv'],
     },
     maxFiles: 1,
+    disabled: isReadOnly,
   });
 
   const removeFile = () => {
@@ -245,6 +248,12 @@ export default function FileUploadModal({
   };
 
   const handleUpload = async () => {
+    if (isReadOnly) {
+      setFeedbackMessage('Read-only users cannot upload files.');
+      setFeedbackSeverity('warning');
+      setSnackbarOpen(true);
+      return;
+    }
     if (files.length === 0 || !accessToken) return;
     
     // Double-check validation before upload
@@ -492,7 +501,7 @@ export default function FileUploadModal({
           </Paper>
         </Box>
         
-        <UploadBox {...getRootProps()} sx={{ mb: 3 }}>
+        <UploadBox {...getRootProps()} sx={{ mb: 3, cursor: isReadOnly ? 'not-allowed' : 'pointer', opacity: isReadOnly ? 0.6 : 1 }}>
           <input {...getInputProps()} />
           <CloudUploadIcon sx={{ fontSize: 64, color: theme.palette.primary.main, mb: 2 }} />
           {isDragActive ? (
@@ -505,6 +514,11 @@ export default function FileUploadModal({
               <Typography variant="body2" color="text.secondary">
                 Maximum 1 file, {MAX_RECORDS} records
               </Typography>
+              {isReadOnly && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  Read-only access: uploads are disabled.
+                </Typography>
+              )}
             </>
           )}
         </UploadBox>
@@ -654,7 +668,7 @@ export default function FileUploadModal({
           onClick={handleUpload}
           variant="contained"
           startIcon={<CloudUploadIcon />}
-          disabled={files.length === 0 || uploading || !accessToken || Boolean(fileValidation && !fileValidation.isValid)}
+          disabled={isReadOnly || files.length === 0 || uploading || !accessToken || Boolean(fileValidation && !fileValidation.isValid)}
           color="secondary"
         >
           Upload File

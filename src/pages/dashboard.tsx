@@ -55,6 +55,9 @@ type EditToolbarProps = GridToolbarProps & {
 
 export function EditToolbar(props: EditToolbarProps) {
   const { setRows, setRowModesModel } = props;
+  const { department } = useAuth();
+  const userDepartment = department || "SCM";
+  const isReadOnly = userDepartment?.toUpperCase() === "READ_ONLY";
 
   const handleClick = () => {
     const id = Math.floor(Math.random() * 1000000);
@@ -88,7 +91,7 @@ export function EditToolbar(props: EditToolbarProps) {
 
   return (
     <GridToolbarContainer>
-      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick} disabled={isReadOnly} sx={{ opacity: isReadOnly ? 0.6 : 1 }}>
         Add record
       </Button>
       <GridToolbar />
@@ -163,6 +166,7 @@ export default function Dashboard() {
 
   // Get user department for permission-based editing
   const userDepartment = department || "SCM";
+  const isReadOnly = userDepartment?.toUpperCase() === "READ_ONLY";
 
   // Add helper function to check if user can edit fields
   const canEdit = (department: string | null, allowedDept: string): boolean => {
@@ -181,6 +185,9 @@ export default function Dashboard() {
       cellClassName: "actions",
       getActions: ({ id }) => {
         const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
+        if (isReadOnly) {
+          return [];
+        }
         if (isInEditMode) {
           return [
             <GridActionsCellItem
@@ -242,26 +249,26 @@ export default function Dashboard() {
       field: "im_sku",
       headerName: "Linnworks SKU",
       width: 200,
-      editable: canEdit(userDepartment, "SCM"), // SCM and ADMIN can edit
+      editable: !isReadOnly && canEdit(userDepartment, "SCM"), // SCM and ADMIN can edit
     },
     {
       field: "parent_sku",
       headerName: "Parent SKU",
       width: 200,
-      editable: canEdit(userDepartment, "FINANCE"), // FINANCE and ADMIN can edit
+      editable: !isReadOnly && canEdit(userDepartment, "FINANCE"), // FINANCE and ADMIN can edit
     },
     { field: "region", headerName: "Region", width: 100, editable: false },
     {
       field: "sales_channel",
       headerName: "Sales Channel",
       width: 200,
-      editable: true, // Only editable for SCM, case-insensitive
+      editable: !isReadOnly, // Only editable for SCM, case-insensitive
     },
     {
       field: "level_1",
       headerName: "Linnworks Category",
       width: 200,
-      editable: true, // Only editable for Finance, case-insensitive
+      editable: !isReadOnly, // Only editable for Finance, case-insensitive
     },
 
     {
@@ -274,7 +281,7 @@ export default function Dashboard() {
       field: "linworks_title",
       headerName: "Linnworks Title",
       width: 300,
-      editable: true, // Only editable for SCM, case-insensitive
+      editable: !isReadOnly, // Only editable for SCM, case-insensitive
     },
     {
       field: "modified_by",
@@ -298,13 +305,13 @@ export default function Dashboard() {
       field: "comment",
       headerName: "Comment by SCM",
       width: 150,
-      editable: canEdit(userDepartment, "SCM"), // SCM and ADMIN can edit
+      editable: !isReadOnly && canEdit(userDepartment, "SCM"), // SCM and ADMIN can edit
     },
     {
       field: "comment_by_finance",
       headerName: "Comment by Finance",
       width: 180,
-      editable: canEdit(userDepartment, "FINANCE"), // FINANCE and ADMIN can edit
+      editable: !isReadOnly && canEdit(userDepartment, "FINANCE"), // FINANCE and ADMIN can edit
     },
     {
       field: "actions",
@@ -474,7 +481,7 @@ export default function Dashboard() {
 
       const response = await api.put(
         `/update_mapping/${updatedRow.id}`,
-        updatedRowWithUser
+        { ...updatedRowWithUser, department: userDepartment }
       );
 
       if (response.data) {
@@ -662,21 +669,36 @@ export default function Dashboard() {
                 <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={handleOpenUploadModal}
-                disabled={loading}
+                disabled={loading || isReadOnly}
+                color={isReadOnly ? "inherit" : undefined}
+                sx={{
+                  opacity: isReadOnly ? 0.6 : 1,
+                  pointerEvents: isReadOnly ? "none" : "auto",
+                }}
               >
                 Bulk upload
               </Button>
               <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={refreshData}
-                disabled={loading}
+                disabled={loading || isReadOnly}
+                color={isReadOnly ? "inherit" : undefined}
+                sx={{
+                  opacity: isReadOnly ? 0.6 : 1,
+                  pointerEvents: isReadOnly ? "none" : "auto",
+                }}
               >
                 Refresh Data
               </Button>
               <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={handleClickOpen}
-                disabled={loading}
+                disabled={loading || isReadOnly}
+                color={isReadOnly ? "inherit" : undefined}
+                sx={{
+                  opacity: isReadOnly ? 0.6 : 1,
+                  pointerEvents: isReadOnly ? "none" : "auto",
+                }}
               >
                 Save Mapping
               </Button>

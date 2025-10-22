@@ -29,7 +29,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   const login = async (email: string, password: string) => {
-    const apiurl = import.meta.env.VITE_BASE_URL;
+    // Determine if client is on a local network
+    const isLocalNetwork = typeof window !== 'undefined' &&
+      (window.location.hostname.startsWith('192.168.') ||
+       window.location.hostname === 'localhost' ||
+       window.location.hostname === '127.0.0.1');
+    // Choose the appropriate base URL
+    const apiurl = isLocalNetwork
+      ? import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_URL
+      : import.meta.env.VITE_BASE_GLOBAL_URL;
+    console.log("API URL:", apiurl);
+
     try {
       const response = await fetch(`${apiurl}/token/`, {
         method: 'POST',
@@ -89,7 +99,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshAccessToken = async () => {
-    const apiurl = import.meta.env.VITE_BASE_URL;
+    // Determine if client is on a local network
+    const isLocalNetwork = typeof window !== 'undefined' &&
+      (window.location.hostname.startsWith('192.168.') ||
+       window.location.hostname === 'localhost' ||
+       window.location.hostname === '127.0.0.1');
+
+    // Choose the appropriate base URL
+    const apiurl = isLocalNetwork
+      ? import.meta.env.VITE_BASE_URL || import.meta.env.VITE_LOCAL_URL
+      : import.meta.env.VITE_BASE_GLOBAL_URL;
+    console.log("API URL:", apiurl);
+
     try {
       if (!refreshToken) {
         throw new Error('No refresh token available');
