@@ -446,6 +446,30 @@ export default function Dashboard() {
     }
   };
 
+  const getData = () => {
+    if (accessToken) {
+      setLoading(true);
+      api
+        .get("/dump-db")
+        .then((response) => {
+          if (response.data.message === "success") {
+            fetchData();
+          } else {
+            console.log("An unknown error occurred on server");
+          }
+        })
+        .catch((error) => {
+          console.error("Error while getting dump-db:", error);
+          setFeedbackMessage("Error getting data.");
+          setFeedbackSeverity("error");
+          setSnackbarOpen(true);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }
+
   // processRowUpdate is triggered when a row edit is committed
   const processRowUpdate = async (updatedRow: any) => {
     if (!userEmail) {
@@ -666,6 +690,18 @@ export default function Dashboard() {
           )}
           {rows.length !== 0 && (
             <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant={loading ? "outlined" : "contained"}
+                onClick={getData}
+                disabled={loading || isReadOnly}
+                color={isReadOnly ? "inherit" : undefined}
+                sx={{
+                  opacity: isReadOnly ? 0.6 : 1,
+                  pointerEvents: isReadOnly ? "none" : "auto",
+                }}
+              >
+                Get Data
+              </Button>
                 <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={handleOpenUploadModal}
