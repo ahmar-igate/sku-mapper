@@ -164,7 +164,20 @@ export default function FileUploadModal({
         }
         
         // Get headers from first line and normalize them
-        const headers = lines[0].split(',').map(header => header.trim());
+        // const headers = lines[0].split(',').map(header => header.trim());
+        // Get the first line (header row)
+        const headerLine = lines[0].trim();
+
+        // Detect delimiter: tab or comma
+        let delimiter = ',';
+        if (headerLine.includes('\t')) {
+            delimiter = '\t';
+        }
+
+        // Split headers using detected delimiter
+        const headers = headerLine.split(delimiter).map(header => header.trim());
+        console.log('CSV Headers:', headers); // Debug log
+
         
         // Check for required fields
         const missingFields = REQUIRED_FIELDS.filter(
@@ -172,7 +185,7 @@ export default function FileUploadModal({
             header.toLowerCase() === field.toLowerCase()
           )
         );
-        
+        console.log(missingFields);
         if (missingFields.length > 0) {
           resolve({
             isValid: false,
