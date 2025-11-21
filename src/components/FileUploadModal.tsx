@@ -67,7 +67,7 @@ const REQUIRED_FIELDS = [
 ];
 
 // Define the maximum number of records allowed
-const MAX_RECORDS = 250;
+const MAX_RECORDS = 1000;
 
 interface FileUploadModalProps {
   open: boolean;

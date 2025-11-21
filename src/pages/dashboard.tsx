@@ -482,6 +482,31 @@ export default function Dashboard() {
 
     console.log("Process row update - Department:", userDepartment);
 
+    // Capitalize specific fields before sending to backend
+    if (updatedRowWithUser.marketplace_sku && typeof updatedRowWithUser.marketplace_sku === 'string') {
+      updatedRowWithUser.marketplace_sku = updatedRowWithUser.marketplace_sku.trim().toUpperCase();
+    }
+    if (updatedRowWithUser.asin && typeof updatedRowWithUser.asin === 'string') {
+      updatedRowWithUser.asin = updatedRowWithUser.asin.trim().toUpperCase();
+    }
+    if (updatedRowWithUser.im_sku && typeof updatedRowWithUser.im_sku === 'string') {
+      updatedRowWithUser.im_sku = updatedRowWithUser.im_sku.trim().toUpperCase();
+    }
+    if (updatedRowWithUser.parent_sku && typeof updatedRowWithUser.parent_sku === 'string') {
+      updatedRowWithUser.parent_sku = updatedRowWithUser.parent_sku.trim().toUpperCase();
+    }
+    if (updatedRowWithUser.region && typeof updatedRowWithUser.region === 'string') {
+      updatedRowWithUser.region = updatedRowWithUser.region.trim().toUpperCase();
+    }
+    if (updatedRowWithUser.level_1 && typeof updatedRowWithUser.level_1 === 'string') {
+      updatedRowWithUser.level_1 = updatedRowWithUser.level_1.trim().toUpperCase();
+    }
+    if (updatedRowWithUser.sales_channel && typeof updatedRowWithUser.sales_channel === 'string') {
+      // Capitalize only first letter for sales_channel
+      const trimmed = updatedRowWithUser.sales_channel.trim();
+      updatedRowWithUser.sales_channel = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    }
+
     // Determine which field to update based on user's department
     // Clear all department fields first to avoid confusion
     updatedRowWithUser.modified_by = null;
@@ -507,8 +532,10 @@ export default function Dashboard() {
         `/update_mapping/${updatedRow.id}`,
         { ...updatedRowWithUser, department: userDepartment }
       );
+      console.log("Server response:", response.data);
 
       if (response.data) {
+        console.log("Response from server:", response.data);
         setFeedbackMessage(response.data.message);
         setFeedbackSeverity("success");
         setSnackbarOpen(true);
