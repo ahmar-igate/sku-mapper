@@ -446,29 +446,29 @@ export default function Dashboard() {
     }
   };
 
-  const getData = () => {
-    if (accessToken) {
-      setLoading(true);
-      api
-        .get("/dump-db")
-        .then((response) => {
-          if (response.data.message === "success") {
-            fetchData();
-          } else {
-            console.log("An unknown error occurred on server");
-          }
-        })
-        .catch((error) => {
-          console.error("Error while getting dump-db:", error);
-          setFeedbackMessage("Error getting data.");
-          setFeedbackSeverity("error");
-          setSnackbarOpen(true);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }
+  // const getData = () => {
+  //   if (accessToken) {
+  //     setLoading(true);
+  //     api
+  //       .get("/dump-db")
+  //       .then((response) => {
+  //         if (response.data.message === "success") {
+  //           fetchData();
+  //         } else {
+  //           console.log("An unknown error occurred on server");
+  //         }
+  //       })
+  //       .catch((error) => {
+  //         console.error("Error while getting dump-db:", error);
+  //         setFeedbackMessage("Error getting data.");
+  //         setFeedbackSeverity("error");
+  //         setSnackbarOpen(true);
+  //       })
+  //       .finally(() => {
+  //         setLoading(false);
+  //       });
+  //   }
+  // }
 
   // processRowUpdate is triggered when a row edit is committed
   const processRowUpdate = async (updatedRow: any) => {
@@ -717,7 +717,7 @@ export default function Dashboard() {
           )}
           {rows.length !== 0 && (
             <Box sx={{ display: "flex", gap: 2 }}>
-              <Button
+              {/* <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={getData}
                 disabled={loading || isReadOnly}
@@ -728,7 +728,7 @@ export default function Dashboard() {
                 }}
               >
                 Get Data
-              </Button>
+              </Button> */}
                 <Button
                 variant={loading ? "outlined" : "contained"}
                 onClick={handleOpenUploadModal}
